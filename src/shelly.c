@@ -150,7 +150,8 @@ int CheckOwnCmd(char **parsed)
 int ExecOwnCmd(char** parsed)
 {
 	int i, switchOwnArg = 0;
-	char* username;
+	char *username, *usrhomedir;
+	username = getenv("USER");
 
 	for (i = 0; i < NUM_OWN_CMDS; i++)
 	{
@@ -167,13 +168,23 @@ int ExecOwnCmd(char** parsed)
 				printf("\nGoodbye.\n\n");
 				exit(0);
 		case 2:
-				chdir(parsed[1]);
+				if(!parsed[1])	//change directory to home of user
+				{
+					/* Allocation space to store directory name '/home/<username>' */
+					usrhomedir = (char *)malloc((strlen("/hello/") + strlen(username)) * sizeof(char));
+					strcpy(usrhomedir, "/home/");
+					printf("%s\n", usrhomedir);
+					strcat(usrhomedir, username);
+					chdir(usrhomedir);
+					free(usrhomedir);
+				}
+				else
+					chdir(parsed[1]);
 				return 1;
 		case 3:
 				OpenHelp();
 				return 1;
 		case 4:
-				username = getenv("USER");
 				printf("\nHello %s. \nType `help` to know more about this shell.\n",
 						username);
 				return 1;
@@ -432,39 +443,31 @@ void ProcessInputAndExecuteCommands(char* str, char** parsed, char** parsedMult)
 		ParseMultipleCommands(str, strConnected, "|");
 	}
 
-	if (mult)
+	ParseSpace(strConnected[0], parsed);
+	ParseSpace(strConnected[1], parsedMult);
+	switch (mult)
 	{
-		ParseSpace(strConnected[0], parsed);
-		ParseSpace(strConnected[1], parsedMult);
-		switch (mult)
-		{
-			case 1:
-					ExecArgsSerial(parsed, parsedMult);
-					return;
-			case 2:
-					ExecArgsAnd(parsed, parsedMult);
-					return;
-			case 3:
-					ExecArgsOr(parsed, parsedMult);
-					return;
-			case 4:
-					ExecArgsPiped(parsed, parsedMult);
-					return;
+		case 1:
+				ExecArgsSerial(parsed, parsedMult);
+				return;
+		case 2:
+				ExecArgsAnd(parsed, parsedMult);
+				return;
+		case 3:
+				ExecArgsOr(parsed, parsedMult);
+				return;
+		case 4:
+				ExecArgsPiped(parsed, parsedMult);
+				return;
 
-			default:
-					break;
-		}
-	}
-
-	else // mult = 0
-	{
+		default:
 		ParseSpace(str, parsed);
 		if(CheckOwnCmd(parsed))
 			ExecOwnCmd(parsed);
 		else
 			ExecArgs(parsed);
+				break;
 	}
-
 }
 
 // Function to take input from terminal, store it in a string
